@@ -27,7 +27,7 @@ mongodb=client.face_recognition
 templates=Jinja2Templates(directory="templates")
 
 class Input(BaseModel):
-     base64str : str
+     base64str:str
 
 if __name__ == "__main__":
     uvicorn.run(app,host="127.0.0.1",port=8000)

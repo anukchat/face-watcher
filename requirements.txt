@@ -13,3 +13,4 @@ numpy
 mtcnn
 aiofiles
 python-multipart
+keras_facenet
