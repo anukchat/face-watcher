@@ -1,0 +1,125 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div id="camera" style="height:auto;width:auto; text-align:left;"></div>
+<br></br>
+<div>If you Face is not registered already than ,Register your  face and then authenticate</div>
+<br></br>
+<!-- FOR THE SNAPSHOT -->
+<form method="post" action="/recognizeFace" enctype="multipart/form-data">
+    <input type="button" value="Authenticate User" id="btPic" onclick="takeSnapShot()" />
+    <br></br>
+    <p id="snapShot"></p>
+    <div id="displayData">
+</form>
+<form method="post" action="/registerFace" enctype="multipart/form-data">
+    <input type="button" value="Register Your Face" id="btPic1" onclick="registerFace()" />
+    <input type="text" id="faceName"  placeholder="Input Name" name="faceName"/>
+</form>
+
+<script>
+  // CAMERA SETTINGS.
+  Webcam.set({
+      width: 220,
+      height: 190,
+      image_format: 'png',
+      jpeg_quality: 100
+  });
+  Webcam.attach('#camera');
+
+  // SHOW THE SNAPSHOT.
+  takeSnapShot = function () {
+      Webcam.snap(function (data_uri) {
+          document.getElementById('snapShot').innerHTML = 
+              '<img id="imageprev" src="' + data_uri + '" width="150px" height="100px" />';
+          //console.log(data_uri);
+          var uri=data_uri.split(";")[1].split(",")[1];
+          //console.log(uri)
+          var blob=b64toBlob(uri, "image/png");
+          const file = new File([blob], "capture.png", {
+          type: "image/png",
+          contentType: "multipart/form"
+        });
+          
+          var fd = new FormData();
+          fd.append("mainImage", file);
+          //fd.append("type","image/png");
+
+          $.ajax({
+            url: "/recognizeFace",
+            type: "POST",
+            data: fd,
+            processData:false,
+            contentType:false,
+            dataType:"json"
+          }).done(function(data)
+          {
+            var uData=JSON.parse(JSON.stringify(data));
+            document.getElementById('displayData').innerHTML=
+            "<div> <b>Prediction: </b>"+uData.Prediction+"</br>"+"<b>Distance: </b>"+uData.L2Distance+"</div>";
+          });
+        }); 
+  }
+
+// SHOW THE SNAPSHOT.
+registerFace = function () {
+      Webcam.snap(function (data_uri) {
+          document.getElementById('snapShot').innerHTML = 
+              '<img id="imageprev" src="' + data_uri + '" width="70px" height="50px" />';
+          
+          //console.log(data_uri);
+          var uri=data_uri.split(";")[1].split(",")[1];
+          //console.log(uri)
+          var blob=b64toBlob(uri, "image/png");
+          const file = new File([blob], "capture.png", {
+          type: "image/png",
+          contentType: "multipart/form-data"
+        });
+          console.log(document.getElementById('faceName').value);
+          var fd = new FormData();
+        //   fd.append("name",document.getElementById('faceName').value);
+          fd.append("refImage", file);
+
+          //fd.append("type","image/png");
+
+          $.ajax({
+            url: "/registerFace?name="+document.getElementById('faceName').value,
+            type: "POST",
+            data: fd,
+            processData:false,
+            contentType:false,
+            dataType:"json"
+          }).done(function(data)
+          {
+            document.getElementById('displayData').append(JSON.stringify(data))
+            
+          });
+        }); 
+  }
+
+function b64toBlob(b64Data, contentType, sliceSize) {
+        contentType = contentType || '';
+        sliceSize = sliceSize || 512;
+
+        var byteCharacters = atob(b64Data);
+        var byteArrays = [];
+
+        for (var offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+            var slice = byteCharacters.slice(offset, offset + sliceSize);
+
+            var byteNumbers = new Array(slice.length);
+            for (var i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+            }
+
+            var byteArray = new Uint8Array(byteNumbers);
+
+            byteArrays.push(byteArray);
+        }
+
+      var blob = new Blob(byteArrays, {type: contentType});
+      return blob;
+}
+</script>
+
+{% endblock %}

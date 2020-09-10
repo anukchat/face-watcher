@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+jinja2
+yfinance
+sqlalchemy
+tensorflow
+keras
+pillow
+matplotlib
+opencv-python
+pandas
+numpy
+mtcnn
+aiofiles
+python-multipart
