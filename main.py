@@ -92,16 +92,29 @@ async def recognize_Face(mainImage: UploadFile= File(...)):
     # Generate Embedding
     embedding=utils.get_embedding(embedder.model,face)
     # get orginal embedding
+
+    minDist=1000
+    record=None
+    # mongodb.embeddings
     for s in mongodb.embeddings.find():
         dist=np.linalg.norm(embedding-pickle.loads(s["embedding"]))
+        if minDist>dist:
+            minDist=dist
+            record=s
         # print(dist)
-        if(dist < 1.1):
-            prediction=s["faceName"]
-            break
-        else:
-            prediction="Unknown"
-    print(prediction)    
+        
+    if(minDist < 1.1):
+        prediction=record["faceName"]
+    else:
+        prediction="Unknown"
+
+    # minDistance=np.min(dists)
+    # minIndex=dists.index(minDistance)
+    # mongodb.embeddings.find({})
+
+    print(prediction)   
+    print(minDist)   
     return {
         "Prediction": str(prediction),
-        "L2Distance": float(dist)
+        "L2Distance": float(minDist)
     }
