@@ -44,7 +44,7 @@ def extract_face(filename, required_size=(160, 160)):
 
 def detect_faces(image_path):
 
-    image = PImage.open(io.BytesIO(image_path))
+    image = Image.open(io.BytesIO(image_path))
     image = image.convert('RGB')
     pixels = np.asarray(image)
 
@@ -67,4 +67,3 @@ def detect_faces(image_path):
             })
 
     return detected_faces
-

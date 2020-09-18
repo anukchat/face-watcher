@@ -1,23 +1,24 @@
-from fastapi import FastAPI,Request,Depends,File,UploadFile,Form
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
-from fastapi import Form
-from keras.models import load_model
-from PIL import Image as PImage
-import matplotlib.pyplot as plt
-from mtcnn.mtcnn import MTCNN
-from fastapi.templating import Jinja2Templates
-import numpy as np
-import pandas as pd
-import cv2
 import io
-import uuid
-import utils
-from keras_facenet import FaceNet
-import uvicorn
-from pymongo import MongoClient
-from bson.binary import Binary
 import pickle
+import uuid
+
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+import uvicorn
+from bson.binary import Binary
+from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
+from fastapi.responses import FileResponse
+from fastapi.templating import Jinja2Templates
+from keras.models import load_model
+from keras_facenet import FaceNet
+from mtcnn.mtcnn import MTCNN
+from PIL import Image as PImage
+from pydantic import BaseModel
+from pymongo import MongoClient
+
+import faiss_utils
+import utils
 
 app = FastAPI()
 embedder =FaceNet()
@@ -36,44 +37,44 @@ if __name__ == "__main__":
 # # async def create_db_client():
 
 
-# @app.on_event("shutdown")
-# async def shutdown_db_cliemt():
-#     client.close()
-def base64str_to_PILImage(base64str):
-    base64_img_bytes = base64str.encode('utf-8')
-    base64bytes = base64.b64decode(base64_img_bytes)
-    bytesObj = io.BytesIO(base64bytes)
-    img = Image.open(bytesObj)
-    return img
+# # @app.on_event("shutdown")
+# # async def shutdown_db_cliemt():
+# #     client.close()
+# def base64str_to_PILImage(base64str):
+#     base64_img_bytes = base64str.encode('utf-8')
+#     base64bytes = base64.b64decode(base64_img_bytes)
+#     bytesObj = io.BytesIO(base64bytes)
+#     img = Image.open(bytesObj)
+#     return img
 
 @app.get("/")
 def home(request:Request):
     return templates.TemplateResponse("dashboard.html",{"request":request})
 
-@app.post("/files/")
-async def create_file(file: bytes = File(...),fileb: UploadFile = File(...), token: str = Form(...)):
-    return {
-        "file_size": len(file),
-        "token": token,
-        "fileb_content_type": fileb.content_type,
-    }
+# @app.post("/files/")
+# async def create_file(file: bytes = File(...),fileb: UploadFile = File(...), token: str = Form(...)):
+#     return {
+#         "file_size": len(file),
+#         "token": token,
+#         "fileb_content_type": fileb.content_type,
+#     }
 
-@app.post("/boundingbox/")
-async def gen_boundingbox(file: UploadFile =File(...)):
-    readFile=await file.read()
-    return detect_faces(readFile)
+# @app.post("/boundingbox/")
+# async def gen_boundingbox(file: UploadFile =File(...)):
+#     readFile=await file.read()
+#     return detect_faces(readFile)
 
-@app.post("/l2distance/")
-async def gen_l2distance(mainImage: UploadFile= File(...),refImage:UploadFile=File(...)):
-    FACENET_MODEL_PATH="model\\facenet_keras.h5"
-    FACENET_WEIGHTS_PATH='weights\\facenet_keras_weights.h5'
+# @app.post("/l2distance/")
+# async def gen_l2distance(mainImage: UploadFile= File(...),refImage:UploadFile=File(...)):
+#     FACENET_MODEL_PATH="model\\facenet_keras.h5"
+#     FACENET_WEIGHTS_PATH='weights\\facenet_keras_weights.h5'
     
-    original_embedding=utils.get_embedding(embedder.model,originalFace)
-    test_embedding=utils.get_embedding(embedder.model,testFace)
+#     original_embedding=utils.get_embedding(embedder.model,originalFace)
+#     test_embedding=utils.get_embedding(embedder.model,testFace)
 
-    dist=np.linalg.norm(test_embedding-original_embedding)
+#     dist=np.linalg.norm(test_embedding-original_embedding)
 
-    return {"l2Distance":float(dist)}
+#     return {"l2Distance":float(dist)}
 
 
 @app.post('/registerFace')
@@ -93,28 +94,19 @@ async def recognize_Face(mainImage: UploadFile= File(...)):
     embedding=utils.get_embedding(embedder.model,face)
     # get orginal embedding
 
-    minDist=1000
-    record=None
-    # mongodb.embeddings
-    for s in mongodb.embeddings.find():
-        dist=np.linalg.norm(embedding-pickle.loads(s["embedding"]))
-        if minDist>dist:
-            minDist=dist
-            record=s
-        # print(dist)
+    distance,identityIndex = faiss_utils.searchEmbedding(np.expand_dims(embedding,axis=0))
+
         
-    if(minDist < 1.1):
-        prediction=record["faceName"]
+    if(distance < 0.8):
+        prediction=mongodb.embeddings.find()[identityIndex]["faceName"]
     else:
         prediction="Unknown"
 
-    # minDistance=np.min(dists)
-    # minIndex=dists.index(minDistance)
-    # mongodb.embeddings.find({})
 
     print(prediction)   
-    print(minDist)   
+    print(distance)   
+
     return {
         "Prediction": str(prediction),
-        "L2Distance": float(minDist)
+        "L2Distance": float(distance)
     }
