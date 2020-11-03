@@ -1,7 +1,6 @@
 fastapi
 uvicorn
 jinja2
-yfinance
 sqlalchemy
 tensorflow
 keras
@@ -15,3 +14,4 @@ aiofiles
 python-multipart
 keras_facenet
 pymongo
+faiss-cpu
